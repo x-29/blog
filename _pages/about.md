@@ -9,5 +9,5 @@ published: true
 post_date: 2019-03-14 09:34:27
 ---
 <!-- wp:paragraph -->
-<p>我是 hemi，十年互联网人<br></p>
+<p>我是 hemi，互联网人<br></p>
 <!-- /wp:paragraph -->
