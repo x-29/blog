@@ -41,7 +41,7 @@ post_date: 2019-03-20 10:11:39
 <!-- /wp:heading -->
 
 <!-- wp:list -->
-<ul><li><a href="/archives/31" target="_blank" rel="noreferrer noopener" aria-label=" (opens in a new tab)">Nginx 配置 Wordpre</a><a href="/archives/31">ss</a></li></ul>
+<ul><li><a href="http://hemi.im/archives/31" target="_blank" rel="noreferrer noopener" aria-label=" (opens in a new tab)">Nginx 配置 Wordpress</a></li></ul>
 <!-- /wp:list -->
 
 <!-- wp:heading {"level":3} -->
