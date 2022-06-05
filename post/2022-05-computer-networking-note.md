@@ -184,7 +184,7 @@ HTTP 由两个程序实现：一个是客户程序（称为 **Web 客户**，如
 
 ![HTTP 的请求-响应行为](/images/http-request-response.jpg)
 
-客户和服务器的交换过程，如图所示。当用户请求一个 Web 页面（如点击一个超链接）时，浏览器向服务器发出对该页面中所包含对象的 HTTP请求报文，服务器接收到请求并用包含这些对象的 HTTP 响应报文进行响应。
+客户和服务器的交换过程，如图所示。当用户请求一个 Web 页面（如点击一个超链接）时，浏览器向服务器发出对该页面中所包含对象的 HTTP 请求报文，服务器接收到请求并用包含这些对象的 HTTP 响应报文进行响应。
 
 HTTP 使用 TCP 作为它的支撑运输协议。HTTP 客户首先发起一个与服务器的 TCP 连接。一旦连接建立，该浏览器和服务器进程就可以通过套接字接口访问 TCP。客户端的套接字是客户进程与 TCP 连接之间的门，在服务器端的套接字接口则是服务器进程与 TCP 连接之间的门。客户向它的套接字接口发送 HTTP 请求报文并从它的套接字接口接收 HTTP 响应报文。同样地，服务器从它的套接字接口接收 HTTP 请求报文和向它的套接字接口发送 HTTP 响应报文。**一旦客户向它的套接字接口发送了一个请求报文，该报文就脱离了客户控制并进入 TCP 的控制**。
 
@@ -218,7 +218,7 @@ HTTP 请求报文是 ASCII 文本，第一行叫做请求行（request line）�
 
 请求报文的每一行都以回车+换行（\r\n）结束，行内的字段之间以空格隔开。首部行可以有多行，最后必须以一个空行（\r\n）表明首部行的结束。
 
-{{< figure src="/images/http-request-general-format.jpg" caption="一个HTTP请求报文的通用格式" style="text-align:center">}}
+{{< figure src="/images/http-request-general-format.jpg" caption="一个 HTTP 请求报文的通用格式">}}
 
 从 HTTP 请求报文的通用格式上，可以看到在首部行后面还有一个实体体（entity body）。在方法为 POST 时，就会用到这个实体体字段，它包含了用户在表单字段中输入的值。**注意：实体体和首部行之间有一个空行（回车+换行）**。
 
@@ -235,3 +235,124 @@ Content-Type: text/html
 
 (data data data data ....)
 ```
+
+HTTP 响应报文一共有三个部分，第一行是状态行（status line），其后是首部行（header line），最后是实体体（entity body）。实体体部分是报文的主要部分，它包含了所请求的对象本身（表示为 data data data data ....）。
+
+状态行有 3 个字段：协议版本字段、状态码和相应状态短语。其中，状态码及其相应的短语指示了请求的结果。
+
+一些常见的状态码和相关的短语：
+
+>* 200 OK: 请求成功，信息在返回的响应报文中。
+>* 301 Moved Permanently: 请求的对象已经被永久转移，新的 URL 定义在响应报文的 Location: 首部中。客户软件将自动获取新的 URL。
+>* 400 Bad Request: 一个通用差错码，指示该请求不能被服务器理解。
+>* 404 Not Found: 被请求的文档不在服务器上。
+>* 505 HTTP Version NOT Supported: 服务器不支持请求报文使用的 HTTP 协议版本。
+
+{{< figure src="/images/http-response-general-format.jpg" caption="一个 HTTP 响应报文的通用格式">}}
+
+用 Telnet 来测试一下 HTTP:
+
+```shell
+$ telnet cis.poly.edu 80
+
+GET /~ross/ HTTP/1.1
+Host: cis.poly.edu
+
+```
+(在输入最后一行后连续按两次回车。）这就打开一个到主机 cis.poly.edu 的 80 端口的 TCP 连接，并发送一个 HTTP 请求报文。
+
+### 电子邮件
+
+因特网电子邮件系统有 3 个主要的组成部分：用户代理（user agent）、邮件服务器（mail server）和简单邮件传输协议（Simple Mail Transfer Protocol, SMTP）。
+
+邮件的发送过程是：邮件从发送方的用户代理开始，传输到发送方到邮件服务器，再传输到接收方的邮件服务器，然后被分发到接收方的邮箱中（每个接收方在邮件服务器上有一个邮箱）。在发送方的邮件服务器不能将邮件传输到接收方的邮件服务器时，邮件将会被保留在发送方的邮件服务器的报文队列中等待再次发送。
+
+SMTP 是因特网电子邮件中主要的应用层协议。它使用 TCP 可靠数据传输服务，从发送方的邮件服务器向接收方的邮件服务器发送邮件。SMTP 有两个部分（sides）：运行在发送方邮件服务器的客服端（client side）和运行在接收方邮件服务器的服务器端（server side）。每台邮件服务器上既运行 SMTP 的客户端也运行 SMTP 的服务器端。当一个邮件服务器向其他邮件服务器发送邮件时，它就表现为 SMTP 的客户；当邮件服务器从其他邮件服务器上接收邮件时，它就表现为一个 SMTP 的服务器。
+
+![](/images/alice-send-message-to-bob.jpg)
+
+如图，从 Alice 给 Bob 发送一条报文的场景，来看 SMTP 的基本操作。
+
+1. Alice 用她的用户代理给 “bob@someschool.edu" 撰写报文。
+2. Alice 的用户代理把报文发送到她的邮件服务器，该报文被放置在报文队列中。
+3. Alice 的邮件服务器上的 SMTP 客户创建一条到 Bob 的邮件服务器上的 SMTP 服务器的 TCP 连接。
+4. 在经过一些初始 SMTP 握手后，SMTP 客户通过这条 TCP 连接发送报文。
+5. 在 Bob 的邮件服务器上，SMTP 服务器端接收报文，然后将报文放入 Bob 的邮箱中。
+6. Bob 用他的用户代理阅读报文。
+
+可以看到，SMTP 将一个报文从发送邮件服务器传送到接收邮件服务，分为了三个阶段：
+
+{{< figure src="/images/smtp-transfer.jpg">}}
+
+1. 握手（SMTP handshaking)。客户 SMTP (运行在发送邮件服务器上) 建立一个到服务器 SMTP (运行在接收邮件服务器上) 的 TCP 连接后，服务器和客户执行**应用层**的握手，在握手阶段，客户指示发送方的邮件地址和接收方的邮件地址。
+2. 传送报文（SMTP transfer）。一旦 SMTP 客户和服务器完成握手之后，客户就发送报文。SMTP 依赖 TCP 提供的可靠数据传输服务无差错地将邮件投递到接收服务器。
+3. 关闭连接（SMTP closure)。客户发送完报文后，它指示 TCP 关闭连接。
+
+***
+
+一个典型的邮件报文格式，如下：
+
+```
+From: alice@crepes.fr
+To: bob@hamburger.edu
+Subject: Searching for the meaning of life.
+
+data data data ...
+```
+
+一个邮件报文包含了报文首部（message header）和报文体（message body）。报文首部必须包含 `Form:` 和 `To:` 首部行。在报文首部之后，紧接着是一个空白行，然后是以 ASCII 格式表示的报文体。
+
+***
+
+用户代理不能使用 SMTP 取回邮件报文，因为取报文是一个拉操作，而 SMTP 是一个推协议。所以需要引入一个邮件访问协议来解决这个问题。
+
+目前流行的邮件访问协议，包括第三版邮件协议（Post Office Protocol-Version 3, POP3）、因特网邮件访问协议（Internet Mail Access Protocol，IMAP）以及 HTTP。
+
+基于 Web（如 Gmail、Yahoo）收取邮件的一般采用 HTTP 协议，基于邮件客户端（如 Outlook）会采用 POP3 或 IMAP 协议。HTTP 和 IMAP 都允许用户远程在邮件服务器上创建文件夹，移动报文。
+
+### DNS-因特网的目录服务
+
+因特网上的主机和人类一样，可以使用多种方式识别。识别主机的一个方法是用它的**主机名**（hostname），如 www.google.com，www.facebook.com，这些名字便于人们记忆，缺点是不适用于路由器，基于此，主机也可以用 **IP 地址**识别。
+
+域名系统（Domain Name System, DNS）主要任务是将主机名转换为 IP 地址。DNS 是：
+- 一个由分层的 DNS 服务器（DNS server）实现的分布式数据库
+- 一个使得主机能够查询分布式数据库的应用层协议。
+
+DNS 服务器通常是运行 BIND（Berkeley Internet Name Domain）软件的 UNIX 机器。DNS 协议运行在 UDP 之上，使用 53 号端口。
+
+为了扩展性，DNS 使用了大量的 DNS 服务器，它们以层次结构组织，并且分布在全世界范围内。大致来说，有 3 种类型的 DNS 服务器：
+- 根 DNS 服务器（root DNS servers）。提供 TLD 服务器的 IP 地址。
+- 顶级域（top-level domain，TLD) DNS 服务器。每个顶级域（如 com、org 和 net) 和所有国家的顶级域（如 uk、ca 和 fr) 都有 TLD 服务器（或服务器集群）。TLD 服务器提供了权威 DNS 服务器的 IP 地址 。
+- 权威 DNS 服务器（authoritative DNS servers)。组织自己的 DNS 服务器，提供主机名到 IP 地址的映射。
+
+{{< figure src="/images/the-hierarchy-of-dns-servers.jpg" caption="部分 DNS 服务器的层次结构">}}
+
+举例说明 DNS 服务器交互的方式，假定 DNS 的客户端需要确定主机名为 `www.amazon.com` 的 IP 地址：
+- 首先，客户端查询`根 DNS 服务器`找到 .com 的 TLD 服务器的 IP 地址。
+- 然后，客户端查询`.com TLD 服务器`获取 amazon.com 的权威 DNS 服务器的 IP 地址。
+- 最后，客户端查询`amazon.com 的权威 DNS 服务器`获得主机名为 www.amazon.com 的 IP 地址。
+
+在 DNS 服务器层次结构之外，还有一个重要的**本地 DNS 服务器**， 当主机发出 DNS 查询请求时，请求先发送到该主机的本地 DNS 服务器，本地 DNS 服务器起着代理的作用，它将请求转发到 DNS 服务器层次结构中。例如，主机 cse.nyu.edu 想知道主机 gaia.cs.umass.edu 的 IP 地址。它首先向它的本地 DNS 服务器 dns.nyu.edu 发送一个 DNS 查询报文，之后由本地 DNS 服务器将报文转发到根 DNS 服务器，在迭代查询 TLD 服务器和权威 DNS 服务器后，本地 DNS 服务器向主机 cse.nye.edu 返回 gaia.cs.umass.edu 的 IP 地址。
+
+共同实现 DNS 分布式数据库的所有 DNS 服务器存储了**资源记录**（Resource Record, RR)。每个 DNS 回答报文包含了一个条或多条资源记录。
+
+RR 的格式：(Name, Value, Type, TTL)。TTL 表示记录的生存时间，Name 和 Value 的值取决于 Type：
+
+- Type=A。Name 是主机名，Value 是 IP 地址。
+- Type=NS。Name 是个域（如：foo.com），Value 是此域的权威 DNS 服务器的主机名。
+- Type=CNAME。Name 是主机别名，Value 是规范主机名（主机真实名）。
+- Type=MX。Name 是邮件服务器别名，Value 是邮件服务器规范主机名。
+
+注册新的域名(如：networkutopia.com)，需要：
+
+1. 向注册登记机构提供权威 DNS 服务器的名字和 IP 地址。
+	- 假如名字和 IP 分别是 dns1.networkutopia.com, 212.212.212.1。
+2. 注册登记机构将 NS 和 A 记录输入到 .com TLD 服务器
+	- (networkutopia.com, dns1.networkutopia.com, NS)
+	- (dns1.networkutopia.com, 212.212.212.1, A)
+
+
+
+
+
+
