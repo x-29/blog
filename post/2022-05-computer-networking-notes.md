@@ -343,13 +343,18 @@ RR 的格式：(Name, Value, Type, TTL)。TTL 表示记录的生存时间，Name
 - Type=CNAME。Name 是主机别名，Value 是规范主机名（主机真实名）。
 - Type=MX。Name 是邮件服务器别名，Value 是邮件服务器规范主机名。
 
-注册新的域名(如：networkutopia.com)，需要：
+注册一个新的域名(如：networkutopia.com)，需要：
 
 1. 向注册登记机构提供权威 DNS 服务器的名字和 IP 地址。
 	- 假如名字和 IP 分别是 dns1.networkutopia.com, 212.212.212.1。
 2. 注册登记机构将 NS 和 A 记录输入到 .com TLD 服务器
 	- (networkutopia.com, dns1.networkutopia.com, NS)
 	- (dns1.networkutopia.com, 212.212.212.1, A)
+
+## 三 运输层
+
+*运输层的原理及这些原理在现有协议中的实现*
+
 
 
 
