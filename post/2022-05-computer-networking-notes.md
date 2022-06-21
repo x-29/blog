@@ -1,5 +1,5 @@
 ---
-title: "计算机网络(Computer Networking)笔记" # Title of the blog post.
+title: "计算机网络(Computer Networking)笔记(一)" # Title of the blog post.
 date: 2022-05-23T23:56:18+08:00 # Date of post creation.
 description: "计算机网络(Computer Networking: A Top-Down Approach)学习笔记." # Description used for search engine.
 featured: true # Sets if post is a featured post, making appear on the home page side bar.
@@ -21,7 +21,9 @@ tags:
 # comment: false # Disable comment if false.
 ---
 
-这是[《计算机网络自顶向下方法 第6版》](https://book.douban.com/subject/26176870/)一书的读书笔记。
+这是[《计算机网络自顶向下方法 第6版》](https://book.douban.com/subject/26176870/)一书的读书笔记的第一部分。
+
+[第二部分](../2022-05-computer-networking-notes-part2)
 
 ## 一 计算机网络和因特网
 
@@ -363,7 +365,7 @@ RR 的格式：(Name, Value, Type, TTL)。TTL 表示记录的生存时间，Name
 - **UDP**（用户数据报协议），为调用它的应用程序提供了一种不可靠、无连接的服务。
 - **TCP**（传输控制协议），为调用它的应用程序提供了一种可靠的、面向连接的服务。
 
-网络层为主机之间提供了逻辑通信。网络层协议只有一个，即网际协议（IP），它是尽力而为交付服务。就是说，IP 尽它“最大的努力”在通信的主机之间交付报文段，但不做任何确保。它不确保报文的交付，不保证报文段的按序交付，不保证报文段中数据完整性。因此，称为IP 为不可靠服务。
+网络层为主机之间提供了逻辑通信。网络层最著名的协议是网际协议（IP），它是尽力而为交付服务。就是说，IP 尽它“最大的努力”在通信的主机之间交付报文段，但不做任何确保。它不确保报文的交付，不保证报文段的按序交付，不保证报文段中数据完整性。因此，称为 IP 为不可靠服务。
 
 ### 多路复用（Multiplexing）和多路分解（Demultiplexing）
 
