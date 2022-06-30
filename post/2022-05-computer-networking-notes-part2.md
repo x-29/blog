@@ -332,4 +332,4 @@ Dijkstra 算法计算从某节点（源节点）到网络中所有其他节点�
 
 {{<figure src="/images/Dijkstra-ls-example-result.jpg">}}
 
-结束后，就计算出了从源节点 u 到网络中每个其他节点的最短路径。·
+结束后，就计算出了从源节点 u 到网络中每个其他节点的最短路径。

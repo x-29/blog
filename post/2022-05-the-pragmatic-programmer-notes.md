@@ -2,16 +2,7 @@
 title: "The Pragmatic Programmer 笔记" # Title of the blog post.
 date: 2022-05-26T13:38:20+08:00 # Date of post creation.
 description: "这是《程序员修炼之道 第2版》一书的读书笔记"
-featured: true # Sets if post is a featured post, making appear on the home page side bar.
 draft: false # Sets whether to render this page. Draft of true will not be rendered.
-toc: false # Controls if a table of contents should be generated for first-level links automatically.
-# menu: main
-usePageBundles: false # Set to true to group assets like images in the same folder as this post.
-featureImage: "https://img9.doubanio.com/view/subject/s/public/s33836286.jpg"
-featureImageCap: '图片来自: douban.'
-codeMaxLines: 12 # Override global value for how many lines within a code block before auto-collapsing.
-codeLineNumbers: true # Override global value for showing of line numbers within code block.
-figurePositionShow: true # Override global value for showing the figure label.
 categories:
   - 读书笔记
 tags:
@@ -104,7 +95,7 @@ DRY 针对的是你对**知识**和**意图**的复制。它强调的是，在�
 
 被要求做一个估算时说什么？应该说“我等一下答复你。”
 
-估算使用的时间单位会对结果的解释产生影响。如果你说某件事需要 130 个工作日完成，那么听的人往往觉得实际需要的时间会很接近这个数字。然而，如果你说的是“大，约 6 个月吧”，他们就会认为是需要 5 到 7 个月不等。建议采用下面的时间尺度做估算：
+估算使用的时间单位会对结果的解释产生影响。如果你说某件事需要 130 个工作日完成，那么听的人往往觉得实际需要的时间会很接近这个数字。然而，如果你说的是“大约 6 个月吧”，他们就会认为是需要 5 到 7 个月不等。建议采用下面的时间尺度做估算：
 
 | 持续时间 | 采用的估算单位 |
 | --- | --- |

@@ -2,18 +2,7 @@
 title: "计算机网络(Computer Networking)笔记(一)" # Title of the blog post.
 date: 2022-05-23T23:56:18+08:00 # Date of post creation.
 description: "计算机网络(Computer Networking: A Top-Down Approach)学习笔记." # Description used for search engine.
-featured: true # Sets if post is a featured post, making appear on the home page side bar.
 draft: false # Sets whether to render this page. Draft of true will not be rendered.
-toc: false # Controls if a table of contents should be generated for first-level links automatically.
-# menu: main
-usePageBundles: false # Set to true to group assets like images in the same folder as this post.
-featureImage: "https://img3.doubanio.com/view/subject/s/public/s27997920.jpg" # Sets featured image on blog post.
-featureImageCap: '图片来自: douban.' # Caption (optional).
-# thumbnail: "https://img3.doubanio.com/view/subject/s/public/s27997920.jpg" # Sets thumbnail image appearing inside card on homepage.
-# shareImage: "/images/path/share.png" # Designate a separate image for social media sharing.
-codeMaxLines: 10 # Override global value for how many lines within a code block before auto-collapsing.
-codeLineNumbers: false # Override global value for showing of line numbers within code block.
-figurePositionShow: true # Override global value for showing the figure label.
 categories:
   - 读书笔记
 tags:
