@@ -131,7 +131,7 @@ $$Imm+R[r_b]+R[r_i] \cdot s$$
 符号说明：符号 $r_a$ 表示任意寄存器 $a$，$R[r_a]$ 表示它的值。这是将寄存器集合看成一个数组 $R$，用寄存器标识作为索引。
 
 其他形式都是这种形式的特殊情况，只是省略了某些部分，相当于这些部分是 0。
-|名称|格式|类型|说明|
+|名称|格式|操作数类型|说明|
 |--|--|--|--|
 |直接（绝对）寻址（Direct/Absolute Addressing Mode））|$Imm$ |Memory| 只使用 $Imm$ 寻址，例如 movl 0x20, %eax。把地址 0x20 处的 32 位数传送到 eax 寄存器。注意与立即数寻址的区别，这里是直接的内存地址。|
 | 间接寻址（Indirect Addressing Mode）|($r_b$) | Memory | 只使用 $r_b$ 寻址。例如 movl (%eax), %ebx。把 eax 寄存器的值看做内存地址，把内存中这个地址处的 32 位数传送到 ebx 寄存器。**注意与 movl %eax, %ebx 区分开来**。|
@@ -272,4 +272,106 @@ addq $8, %rsp          Increment stack pointer
 
 执行完 pushq 指令后，接着就执行 `popq %rdx` 指令，这时先从内存中读出值 0x123，再写到寄存器 %rdx 中，最后，寄存器 %rsp 的值增加 8，回到了 0x108。
 
-我们可以看到，%rsp 指向的地址总是栈顶。
+我们可以看到，**%rsp 指向的地址总是栈顶**。
+
+栈和程序代码以及其他形式的程序数据都是放在同一个内存中的，**程序可以用标准的内存寻址方法访问栈内的任意位置**。例如，假设栈顶元素是四字，指令 movq 8(%rsp), %rdx 会将第二个四字从栈中复制到寄存器 %rdx。
+
+## 算术和逻辑操作
+
+在 x86-64 中的算术和逻辑操作，可以分为四组：加载有效地址、一元操作、二元操作和移位。二元操作有两个操作数，一元操作只有一个操作数。
+
+{{<figure src="/images/integer-arithmetic-operations.jpg" width="600" caption="整数算术操作">}}
+
+加载有效地址（Load effective address) 指令 `leaq S, D`:
+- S 是地址表达式。
+- D 是一个寄存器。
+
+leaq 指令是将 D 设置为 S 表达式计算出来的地址。例如，leaq (%rdx, %rcx, 4), %rax，它会将表达式 `R[%rdx] + R[%rcx] * 4` 计算出来的地址，写入到寄存器 %rax 中。
+
+需要特别注意：leaq 指令的第一个操作数 S，只做数学计算，不做内存引用。
+
+用一个例子来对 leaq 和 movq 指令做个比较，能更好的理解它。
+
+{{<figure width="600" src="/images/leaq-vs-movq.jpg" caption="leaq vs movq">}}
+
+这种只做数学运算不做内存引用的特点，使得 leaq 指令在一些简单的算术表达式中很有用处。
+
+例如，有这么一个 C 函数：
+
+```C
+long arith (long x, long y, long z) {
+  long t1 = x + y;
+  long t2 = z + t1;
+  long t3 = x + 4;
+  long t4 = y * 48;
+  long t5 = t3 + t4;
+  long rval = t2 * t5;
+  return rval;
+}
+```
+
+编译时，该函数的算术运算会以 leaq 来实现。汇编代码如下：
+
+```
+  long arith (long x, long y, long z)
+  x in %rdi, y in %rsi, z in %rdx
+
+arith:
+  leaq  (%rdi, %rsi), %rax            #t1 = x + y
+  addq  %rdx, %rax                    #t2 = z + t1;
+  leaq  (%rsi, %rsi, 2), %rdx         #y+2y=3y
+  salq  $4, %rdx                      #t4 = 3y * 16 = y * 48
+  leaq  4(%rdi, %rdx), %rcx           #t5 = 4 + x + t4 = t3 + t4
+  imulq %rcx, %rax                    #return t2 * t5
+  ret
+```
+
+---
+
+`subq %rax, %rdx ` 指令，可以解读成 "从 %rdx 中减去 %rax"。subq 指令有两个操作数：
+- 第一个操作数是源操作数，可以是立即数、寄存器或是内存位置。
+- 第二个操作数是目的操作数，它既是源又是目的，可以是寄存器或是内存位置。当为内存位置时，处理器必须**从内存读出值**，执行操作，再把结果写回内存。
+
+例如，给出内存地址和寄存器的情况的如下：
+
+```
+Memory Address  |  Value            Register |  Value
+---------------------------       -----------------------
+  0x100         |   0xFF              %rax   |  0x100
+  0x108         |   0xAB              %rcx   |  0x1
+  0x110         |   0x13              %rdx   |  0x3
+```
+执行指令
+```
+Instruction          |  Destination  |  Value
+-----------------------------------------------
+  addq %rcx, (%rax)  |   0x100       |  0x100
+  subq %rdx, 8(%rax) |   0x108       |  0xA8
+```
+
+目的操作数 (%rdx)、8(%rax) 都为内存地址，要先从内存中读出值，它们的值分别为 0xFF、0xAB，执行操作后，再把结果写回到内存。最后，内存地址 [0x100] 的值为 0x100，内存地址 [0x108] 的值为 0xA8。
+
+---
+
+`sal、shl` 为左移位指令，两者都是将右边填上 0。
+
+`sar` 为算术右移，填符号为。
+
+`shr` 为逻辑右移，填上 0。
+
+移位操作的源操作数为移位量，可以是一个立即数，或者放在单字节寄存器 %cl 中。目的操作数为要移位的数，可以是一个寄存器或是一个内存位置。
+
+例如：
+
+```
+sal $4, %rax
+sar %cl, %rax
+```
+
+---
+
+`xorq %rdx, %rdx`，这条指令会将寄存器 %rdx 设置为 0。对于任意 x，x^x = 0。
+
+
+
+
