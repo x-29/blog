@@ -428,7 +428,7 @@ int gt(long x, long y) {
 
 ```
   int get(long x, long y)
-  x in %rdi, x int %rsi
+  x in %rdi, y int %rsi
 
 gt:
   cmpq    %rsi, %rdi  # compare x:y
@@ -502,8 +502,74 @@ jmp *(%rax) # 以 %rax 中的值作为读地址，从内存中读出跳转目标
 
 链接之后，这些指令被「重定位」到不同的地址，但是第 2 行和第 5 行中跳转目标的编码并没有变。
 
+---
 
+### 实现条件分支
 
+条件分支的实现方式有两种：
+- 使用「控制」的条件转移实现。
+  - 当条件满足时，程序沿着一条执行路径执行，当条件不满足时，就走另一条路径。
+  - 这种机制，在现代处理器上，非常低效。
+- 使用「数据」的条件转移实现
+  - 计算一个条件操作的两种结果，然后根据条件是否满足从中选取一个。
+  - 这种策略只有在一些受限制的情况中才可行，一旦可行，就可以用一条简单的「条件传送」指令来实现它，条件传送指令更符合现代处理器的性能特性。
+
+例如，一个计算两个数之差的 C 函数如下：
+
+```C
+long absdiff(long x, long y) {
+  long result;
+  if (x > y)
+    result = x-y;
+  else
+    result = y-x;
+  return result;
+}
+```
+
+使用条件控制实现的汇编代码。编译命令：gcc –Og -S –fno-if-conversion control.c
+
+```
+  long absdiff(long x, long y)
+  x in %rdi, y in %rsi
+
+absdiff:
+  cmpq    %rsi, %rdi  # Compare x:y
+  jle     .L4
+  movq    %rdi, %rax
+  subq    %rsi, %rax
+  ret
+.L4:      # x <= y
+  movq    %rsi, %rax
+  subq    %rdi, %rax
+  ret
+```
+
+使用条件数据传送实现的汇编代码
+
+```
+  long absdiff(long x, long y)
+  x in %rdi, y in %rsi
+
+absdiff：
+  movq    %rdi, %rax  # x
+  subq    %rsi, %rax  # result = x-y
+  movq    %rsi, %rdx
+  subq    %rdi, %rdx  # else_val = y-x
+  compq   %rsi, %rdi  # Compare x:y
+  cmovle  %rdx, %rax  # if <=, result = else_val
+  ret
+```
+
+基于条件数据传送的代码比基于条件控制转移的代码性能要好的原因是：处理器**无需预测**测试的结果**就可以执行条件传送**。
+
+现代处理器通过使用「流水线」（pipelining）技术来获得高性能。在流水线中，一条指令的处理要经过一系列的「阶段」，每个阶段执行所需操作的一小部分（比如，从内存取指令、确定指令类型、从内存读数据、执行算术运算、向内存写数据，以及更新程序计数器）。流水线技术通过重叠连续指令的步骤，从而获得高性能。例如，在取一条指令的同时，执行它前面一条指令的算术运算。要做到这一点，要求能够事先确定要执行的指令序列，这样才能保证流水线中充满待执行的指令。当机器遇到「条件跳转」（也就是“分支”）时，只有当分支条件求值完成之后，才能决定分支往哪边走。现代处理器采用非常精密的「分支预测逻辑」来猜测每条跳转指令是否会执行。分支预测是否正确，成了性能好坏的关键。现代处理器设计试图达到 90% 以上的预测成功率。同条件跳转不同，处理器**无需预测**测试的结果**就可以执行条件传送**。处理器只是读源值（可能是从内存中），检查条件码，然后要么更新目的寄存器，要么保持不变。
+
+详细的条件传送指令表：
+
+{{<figure width="600" src="/images/cmovx.jpg" caption="条件传送指令">}}
+
+每条指令都有两个操作数：源寄存器或者内存地址 S，和目的寄存器 R。当传送条件满足时，指令把源值 S 复制到目的 R。
 
 
 
