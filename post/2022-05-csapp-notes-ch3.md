@@ -572,5 +572,157 @@ absdiff：
 每条指令都有两个操作数：源寄存器或者内存地址 S，和目的寄存器 R。当传送条件满足时，指令把源值 S 复制到目的 R。
 
 
+### 循环
 
+C 语言提供了多种循环结构，即 do-while、while 和 for。汇编中没有相应的指令，它通过条件「测试」和「跳转」的组合来实现循环效果。
 
+GCC 产生的循环代码主要基于两种基本的循环模式：
+- do-while 循环
+- while 循环
+
+#### do-while 循环
+
+do-while 语句的通用形式：
+```
+do 
+  Body
+  while (Test);
+```
+
+这种通用形式可以被翻译成下面的条件和 goto 语句：
+
+```
+loop:
+    Body
+    if (Test)
+        goto loop;
+```
+
+例如，有一个 C 函数 fact_do
+
+```C
+long fact_do(long n) {
+  long result = 1;
+  do {
+    result *= n;
+    n = n - 1;
+  } while (n > 1);
+  return result;
+}
+```
+对应的汇编代码：
+```
+  long fact_do(long n)
+  n in %rdi
+
+fact_do:
+  movl   $1, %eax       # Set result = 0
+.L2:                    # loop:
+  imulq  %rdi, %rax     # Compute result *= n
+  subq   $1, %rdi       # Decrement n
+  cmpq   $1, %rdi       # Compare n:1
+  jn     .L2            # if >, goto loop
+  rep; ret              # return (rep weird)
+```
+
+从汇编代码可以看到，它是利用条件测试和跳转来实现的循环。
+
+上面的 C 代码，也可以用 goto 语句来实现循环：
+
+```C
+long fact_do_goto(long n) {
+  long result = 1;
+loop: 
+  result *= n;
+  n = n - 1;
+  if (n > 1)
+    goto loop:
+  return result;
+}
+```
+对比一下，我们就能看到汇编代码其实就是 goto 代码的原型。
+
+#### while 循环
+
+while 语句的通用形式：
+```
+while (Test)
+  Body
+```
+
+有很多种方法将 while 循环翻译成机器代码，GCC 在代码生成中使用了其中的两种方法。第一种翻译方法称为「跳转到中间」（jump to middle）：
+- 它执行一个无条件跳转到循环结尾处的测试，以此来执行初始的测试。
+- 编译时使用 -Og 选项。
+
+可以用下面的 goto 代码来表达这种方法：
+
+```
+  goto test
+loop:
+  Body
+test:
+  if (Test)
+    goto loop;
+```
+
+第二种翻译方法，称之为「guarded-do」：
+- 它首先用条件分支，如果初始条件不成立就跳过循环，把代码变换为 do-while 循环。
+- 编译时使用 –O1 选项。
+
+可以用如下的 do-while 循环表达这种方法：
+
+```
+if (!Test)
+  goto done;
+do
+  Body
+  while (Test)
+done:
+```
+
+也可以用 goto 代码来表达：
+
+```
+  if (!Test)
+    goto done;
+loop:
+  Body
+  if (Test)
+    goto loop;
+done:
+```
+
+#### for 循环
+
+for 循环的通用形式：
+```
+for (Init; Test; Update)
+  Body;
+```
+
+GCC 为 for 循环产生的代码是 while 循环的两种翻译之一，具有是哪一种取决于优化的等级。
+
+### switch 语句
+
+switch（开关）语句可以根据一个整数索引值进行多重分支（multiway branching）。与使用一组很长的 if-else 语句相比，switch 可以利用「跳表」（jump table）这种数据结构使得实现更加高效，让执行 switch 语句的时间与开关情况的数量无关。
+
+{{<figure width="600" src="/images/jump-table.jpg" caption="switch 与跳表">}}
+
+在汇编代码中，跳表用以下的声明表示：
+
+{{<figure width="600" src="/images/jump-table-as.jpg" caption="跳表在汇编代码中的表示">}}
+
+## 过程
+
+过程是软件中一种重要的抽象。它提供了一种封装代码的方式，用一组指定的参数和一个可以选的返回值实现了某种功能。过程的形式：
+- 函数（function）
+- 方法（method）
+- 子例程（subroutine）
+- 处理函数（handler）
+
+过程调用，包含的动作：（假设过程 P 调用过程 Q，Q 执行后返回到 P）
+- 传递控制。在进入过程 Q 的时候，程序计数器（%rip）必须被设置为 Q 的代码的起始地址，然后在返回时，要把程序计数器（%rip）设置为 P 中调用 Q 后面那条指令的地址。
+- 传递数据。P 必须能够向 Q 提供一个或多个参数，Q 必须能够向 P 返回一个值。
+- 分配和释放内存。在开始时，Q 可能需要为局部变量分配空间，而在返回前，又必须释放这些存储空间。
+
+x86-64 的过程实现包括一组特殊的指令和一些对机器资源（例如，寄存器和程序内存）使用的约定规则。
