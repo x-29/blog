@@ -797,12 +797,13 @@ ret 指令执行之后，返回地址被弹出了栈，并且程序计数器设�
 - 调用方从 %rax 读取返回值。
 
 下面是一个数据传送的例子：
-```
+```C
 void multstore(long x, long y, long *desc) {
   long t = mult2(x, y);
   *dest = t;
 }
-
+```
+```
 0000000000400540 <multstore>:
   # x in %rdi, y in %rsi, dest in %rdx
     • • •
@@ -831,13 +832,13 @@ long mult2(long a, long b) {
 在这些情况下，局部数据需要存放到内存中：
 - 寄存器不能存放下所有的本地数据。
 - 对一个局部变量使用地址运算符‘&’，这时必须能够为它产生一个地址。
-- 局部变量是数值或结构，这时必须能够通过数值或结构引用被访问到。
+- 局部变量是数组或结构，这时必须能够通过数组或结构引用被访问到。
 
 一般来说，过程通过减小栈指针，在栈上分配空间。分配的结果作为栈帧的一部分，标号为“局部变量”（Local variables）。
 
 下面是一个例子，体现了 x86-64 栈行为的一些特性。
 
-```
+```C
 long call_proc() {
   long x1 = 1;
   int x2 = 2;
@@ -846,8 +847,8 @@ long call_proc() {
   proc(x1, &x1, x2, &x2, x3, &x3, x4, &x4);
   return (x1 + x2) * (x3 - x4)
 }
-
-
+```
+```
 1   call_proc:
       # Set up arguments to proc
 2     subq    $32, %rsp       # Allocate 32-byte stack frame
@@ -882,7 +883,7 @@ long call_proc() {
 可以看到代码中第2～15行都是为调用 proc 做准备，其中包括为局部变量和函数参数建立栈帧，将函数参数加载至寄存器。
 过程 proc 的前 6 个参数通过寄存器传送，后面 2 个通过栈传送。
 
-```
+```C
 void proc(long a1, long *a1p, 
           int a2, int *a2p, 
           short a3, short *a3p, 
@@ -892,9 +893,8 @@ void proc(long a1, long *a1p,
   *a3p += a3;
   *a4p += a4;
 }
-
-
-
+```
+```
     void proc(a1, a1p, a2, a2p, a3, a3p, a4, a4p) 
     # Arguments passed as follows:
     a1  in %rdi     (64 bits) 
@@ -933,14 +933,14 @@ x86-64 采用了一组统一的寄存器使用惯例，所有的过程都必须�
   - 这些寄存器可以被任意修改。在 P 调用 Q 之前，P 有责任在自己的栈帧上保存好这些寄存器的值。
 
 一个被调用者保存的例子：
-```
+```C
 long call_incr2(long x) {
   long v1 = 351;
   long v2 = increment(&v1, 100);
   return x + v2;
 }
-
-
+```
+```
   call_incr(long x)
   x in %rdi
 
@@ -1287,6 +1287,54 @@ void call_echo() {
 
 ### 变长栈帧
 
+通常，编译器能够预先确定一个函数需要在栈上分配多少空间，但是有些函数，需要的局部存储是变长。例如，函数调用了标准库函数 alloca，它可以在栈上分配任意字节数量的存储空间，或者是声明了一个局部变长数组。在这些情况下，编译器是无法确定要给该函数的栈帧分配多少空间的。
+
+下面是一个包含变长数组的例子。
+```C
+long vframe(long n, long idx, long *q) {
+  long i;
+  long *p[n];
+  p[0] = &i;
+  for (i = 1; i < n; i++)
+    p[i] = q;
+  return *p[idx];
+}
+```
+```
+    long vframe(long n, long idx, long *q)
+    n in %rdi, idx in %rsi, q in %rdx
+  
+  vframe:
+      pushq   %rbp                      # Save old %rbp
+      movq    %rsp, %rbp                # Set frame pointer
+      subq    %16, %rsp                 # Allocate space for i (%rsp = s1)
+      leaq    22(,%rdi,8), %rax
+      andq    $-16, 5rax
+      subq    %rax, %rsp                # Allocate space for array p(%rsp = s2)
+        ...
+  .L3:
+      movq    %rdx, (%rcx,%rax,8)       # Set p[i] to q
+      addq    $1, %rax                  # Increment i
+      movq    %rax, -8(%rbp)            # store on stack
+  .L2:
+      movq    -8(%rbp), %rax            # Retrieve i from stack
+      cmpq    %rdi, %rax                # Compare i:n
+      jl      .L3                       # If <, goto loop
+        ...
+      leave                             # Resotre %rbp and %rsp
+      ret                               # Return
+```
+
+从汇编代码看到，为了管理变长栈帧，x86-64 代码使用寄存器 %rbp 作为帧指针（frame pointer），也称为基指针（base pointer），这也是 %rbp 中 bp 两个字母的由来。先将 %rbp push 进栈，然后对 %rsp sub，分配栈帧空间，再利用 %rbp 的偏移量来引用局部变量，最后在返回前，将 %rbp 赋值给 %rsp，此时栈顶指针指向的是最初对 %rbp push 之后的位置，再将栈顶 pop 出来给 %rbp，最后返回。
+
+`leave` 指令将帧指针（%rbp）恢复到它之前的值。这条指令不需要操作数，它等价于执行下面两条指令：
+```
+movq  %rbp, %rsp    # Set stack pointer to beginning of frame
+popq  %rbp          # Restore saved %rbp and set stack ptr to end of caller's frame
+```
+其效果就是释放整个栈帧。
+
+(本章完)
 
 
 
